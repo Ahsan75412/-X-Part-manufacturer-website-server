@@ -43,6 +43,7 @@ async function run() {
         const userCollection = client.db("x-part").collection("users");
         const paymentsCollection = client.db("x-part").collection("payments");
         const reviewCollection = client.db("x-part").collection("review");
+        const infoCollection = client.db("x-part").collection("info");
 
         const verifyAdmin = async (req, res, next) => {
             const requester = req.decoded.email;
@@ -125,7 +126,7 @@ async function run() {
         // get all products
         app.get("/products", async (req, res) => {
             const query = {};
-            const cursor = await productsCollection.find(query);
+            const cursor = productsCollection.find(query);
             const products = await cursor.toArray();
             res.send(products);
         });
@@ -179,7 +180,7 @@ async function run() {
         app.patch("/orders/:id", verifyJWT, async (req, res) => {
             const id = req.params.id;
             const payment = req.body;
-            const options = { upsert: true };
+
             const query = { _id: ObjectId(id) };
             const updatedDoc = {
                 $set: {
@@ -222,6 +223,23 @@ async function run() {
                 res.send(result);
             }
         );
+        //update a product
+        app.put("/products/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const newQuantity = req.body.updatedQuantity;
+            const newPrice = req.body.updatedPrice;
+            const result = await productsCollection.updateOne(
+                query,
+                {
+                    $set: { availableQty: newQuantity, price: newPrice },
+                },
+                options
+            );
+            res.send(result);
+            console.log(newPrice);
+        });
 
         // delete an order
 
@@ -244,12 +262,58 @@ async function run() {
             const reviews = await cursor.toArray();
             res.send(reviews);
         });
+
+        //post profile info
+        app.post("/info", async (req, res) => {
+            const review = req.body;
+            const result = await infoCollection.insertOne(review);
+            res.send(result);
+        });
+        // get info
+        app.get("/info", async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            const cursor = await infoCollection.find(query);
+            const info = await cursor.toArray();
+            res.send(info);
+            console.log(cursor);
+        });
+
+        // update profile
+        app.put("/info", async (req, res) => {
+            const email = req.query.email;
+
+            const query = { email: email };
+            const options = { upsert: true };
+            const newLivesIn = req.body.updatedLivesIn;
+            const newStudyIn = req.body.updatedStudyIn;
+            const newPhone = req.body.updatedPhone;
+            const newLinkedIn = req.body.updatedLinkedIn;
+            const newGithub = req.body.updatedGithub;
+            const newFacebook = req.body.updatedFacebook;
+            const result = await infoCollection.updateOne(
+                query,
+                {
+                    $set: {
+                        livesIn: newLivesIn,
+                        studyIn: newStudyIn,
+                        phone: newPhone,
+                        linkedIn: newLinkedIn,
+                        github: newGithub,
+                        facebook: newFacebook,
+                    },
+                },
+
+                options
+            );
+            res.json(result);
+            console.log(newLivesIn);
+        });
     } finally {
         // await client.close();
     }
 }
 run().catch(console.dir);
-
 
 
 
